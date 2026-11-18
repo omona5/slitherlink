@@ -5,3 +5,63 @@
 @media(max-width:1150px){.workspace{grid-template-columns:195px minmax(330px,540px);gap:28px}.guide{display:none}main{max-width:890px}footer{margin:0 34px}.intro{padding-top:37px}.under-board{margin-left:223px}.quiet-label{display:none}}
 @media(max-width:650px){.site-header{height:70px;padding:0 22px}.brand{font-size:23px}.brand-icon{font-size:27px}.intro{padding:32px 0 28px}main{padding:0 16px}.intro .eyebrow{font-size:8px;letter-spacing:1.5px}h1{font-size:29px;letter-spacing:-1.5px;margin:14px 0 10px}.intro>p{font-size:10px}.workspace{display:flex;flex-direction:column;gap:18px}.settings{width:100%;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:14px}.settings>.section-label,.daily-note,.personal-best,.field-note,.field>label>span{display:none}.mode-switch{grid-column:1/-1;margin:0}.mode-switch button{padding:9px 0}.field{margin:0}.field>label{font-size:10px;margin:0 0 8px}.segments{gap:5px}.segments button{font-size:11px;padding:10px 0}.settings>.primary-button{grid-column:1/-1;margin:0;padding:11px 16px}.game-card{width:100%;border-radius:11px}.game-top{padding:20px 20px 0}.game-top h2{font-size:16px}.board-area{padding:24px 30px 15px;min-height:260px}.clue{font-size:23px}.board-status{padding:8px 20px 14px;font-size:9px}.game-toolbar{padding:10px 12px}.tool-button{font-size:10px;padding:7px 9px}.under-board{margin:19px 0 29px;gap:12px}footer{margin:0 20px;padding:20px 0}footer>p{display:none}dialog{padding:29px}.edge.horizontal{height:24px}.edge.vertical{width:24px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Theme controls and the dark palette. Keep the original light palette intact. */
+:root { color-scheme: light; }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+#theme-toggle { display: grid; place-items: center; font-size: 19px; }
+#theme-toggle:hover { background: var(--pale); }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #171e1b;
+  --paper: #202a24;
+  --ink: #e1e9db;
+  --muted: #a1af9e;
+  --line: #354238;
+  --green: #a6c78e;
+  --pale: #303f32;
+  --accent: #bfd7a2;
+  --red: #f09886;
+}
+:root[data-theme="dark"] .round-button,
+:root[data-theme="dark"] .segments button,
+:root[data-theme="dark"] .rule-number,
+:root[data-theme="dark"] kbd,
+:root[data-theme="dark"] .drawing-tools,
+:root[data-theme="dark"] .game-card { border-color: var(--line); }
+:root[data-theme="dark"] .section-label { border-color: var(--line); color: #a9b99d; }
+:root[data-theme="dark"] .eyebrow,
+:root[data-theme="dark"] .brand-dot,
+:root[data-theme="dark"] .sun,
+:root[data-theme="dark"] .win-icon { color: #b2c88e; }
+:root[data-theme="dark"] :is(.section-label>span,.field>label>span,.field-note,.daily-note p,.personal-best>span,.personal-best small,.personal-best p,.game-top p,.timer-wrap>span,.timer-wrap>div>span,.timer-wrap button,.rule p,.mini-example>span,.controls-note,.under-board>p,.footer-by,footer>p,footer>a,.dialog-close,dialog p,#loading) { color: var(--muted); }
+:root[data-theme="dark"] :is(.mode-switch,.drawing-tools,.tip) { background: #26322a; }
+:root[data-theme="dark"] :is(.mode-switch button,.segments button,.tool-button,.drawing-tools button) { color: #afbea7; }
+:root[data-theme="dark"] .mode-switch button[aria-pressed="true"] { color: var(--ink); }
+:root[data-theme="dark"] .segments button[aria-pressed="true"] { color: var(--green); border-color: #8ba875; }
+:root[data-theme="dark"] .primary-button { color: #19251b; }
+:root[data-theme="dark"] .game-card { box-shadow: 0 6px 26px #0003; }
+:root[data-theme="dark"] :is(.puzzle-tag,.tip>span,.tip p,.board-status b,.board-status>span:first-child,#win-detail) { color: #b3ce9d; }
+:root[data-theme="dark"] .grid-dot { background: #b8c6ab; }
+:root[data-theme="dark"] .clue { color: #e0e8d6; }
+:root[data-theme="dark"] .clue.met { color: #92aa81; }
+:root[data-theme="dark"] .edge::before { background: #3e4c40; }
+:root[data-theme="dark"] .edge:hover::before { background: #7b946c; }
+:root[data-theme="dark"] .edge.on::before { background: var(--green); }
+:root[data-theme="dark"] .edge.cross::before { background: transparent; }
+:root[data-theme="dark"] .edge.cross::after { color: #93a28a; }
+:root[data-theme="dark"] .edge.highlight { background: #9cbd6b36; }
+:root[data-theme="dark"] :is(.clue.bad,.board-status.error>span:first-child) { color: var(--red); }
+:root[data-theme="dark"] .grid-dot.bad { background: var(--red); }
+:root[data-theme="dark"] .board-status { color: var(--muted); }
+:root[data-theme="dark"] .game-toolbar { border-color: var(--line); }
+:root[data-theme="dark"] :is(.tool-button:hover,.hint-button) { background: var(--pale); }
+:root[data-theme="dark"] .hint-button { color: var(--green); }
+:root[data-theme="dark"] .rule-number { color: #b5c49f; }
+:root[data-theme="dark"] .example-cell { border-color: #a6c78e; border-right-color: #5e7151; }
+:root[data-theme="dark"] :is(.example-cell::before,.example-cell::after,.example-cell i::before,.example-cell i::after) { background: #a6c78e; }
+:root[data-theme="dark"] .drawing-tools button[aria-pressed="true"] { color: var(--green); }
+:root[data-theme="dark"] #pause-cover { background: #202a24ee; }
+:root[data-theme="dark"] dialog::backdrop { background: #080e0bc2; }
+:root[data-theme="dark"] .board-area:has(.solved) { background: linear-gradient(0deg,#a6c78e0c,transparent); }
+.edge:disabled { opacity: 1; }
