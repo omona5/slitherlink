@@ -65,3 +65,30 @@
 :root[data-theme="dark"] dialog::backdrop { background: #080e0bc2; }
 :root[data-theme="dark"] .board-area:has(.solved) { background: linear-gradient(0deg,#a6c78e0c,transparent); }
 .edge:disabled { opacity: 1; }
+
+/* Today's nine daily combinations and share controls. */
+.daily-progress { margin-top: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.daily-progress-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.daily-progress-heading h2 { font-size: 14px; margin: 0; letter-spacing: -.3px; }
+.daily-progress-heading strong { font-size: 14px; color: var(--green); font-variant-numeric: tabular-nums; }
+#daily-date { font-size: 12px; color: var(--muted); margin: 8px 0 15px; }
+.daily-columns, .daily-grid { display: grid; grid-template-columns: 42px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center; }
+.daily-columns { font-size: 12px; text-align: center; color: var(--muted); margin-bottom: 8px; }
+.daily-row-label { font-size: 12px; color: var(--muted); }
+.daily-cell { min-height: 36px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); font-size: 16px; color: var(--muted); }
+.daily-cell.complete { background: var(--green); color: var(--paper); border-color: var(--green); font-weight: 700; }
+.daily-cell[aria-current="true"] { outline: 2px solid var(--green); outline-offset: 2px; }
+.daily-caption { font-size: 12px; color: var(--muted); line-height: 1.7; margin: 12px 0 0; }
+.share-status { font-size: 14px; line-height: 1.7; color: var(--muted); margin: 0; padding: 0 18px 14px; }
+.share-status:empty { display: none; }
+#win-dialog .share-status { font-size: 14px; padding: 12px 0 0; color: var(--muted); }
+#win-dialog .tool-button { margin-top: 16px; }
+#share-text { display: block; width: 100%; font: inherit; font-size: 14px; line-height: 1.8; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; resize: vertical; }
+#share-dialog .share-status { padding: 12px 0 0; }
+@media(max-width:650px) {
+  .daily-progress { grid-column: 1 / -1; margin: 0; padding: 15px; border: 1px solid var(--line); border-radius: 8px; }
+  .daily-columns, .daily-grid { grid-template-columns: 42px repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .daily-cell { min-height: 36px; }
+  #daily-date { margin: 6px 0 12px; }
+  .daily-caption { margin-top: 10px; }
+}
