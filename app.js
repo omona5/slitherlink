@@ -1,5 +1,5 @@
 import {topology,inspect,rng,transformPuzzle} from './engine.js';
-import {SIZES,LEVELS,LEVEL_LABELS,formatTime,restoreElapsed,dailyCount,shareText} from './progress.js';
+import {SIZES,LEVELS,LEVEL_LABELS,formatTime,restoreElapsed,dailyCount,shareText,puzzleUrl,parsePuzzleLink} from './progress.js';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const STORE='slitherlink:v1:';
 let storageOK=true;
@@ -8,8 +8,10 @@ function write(key,value){try{localStorage.setItem(STORE+key,JSON.stringify(valu
 const stored=read('preferences',{});
 let mode=stored.mode==='practice'?'practice':'daily',size=[5,7,9].includes(stored.size)?stored.size:5,level=['easy','medium','hard'].includes(stored.level)?stored.level:'easy';
 let bank=[],puzzle,t,state=[],history=[],future=[],elapsed=0,started=false,paused=false,solved=false,hints=0,sessionKey='',puzzleId='',lastTick=Date.now(),confirmAction=null,highlight=-1;
-let tool='line',gameDate='',progressDate='';
+let tool='line',gameDate='',progressDate='',gameSeed=0;
 const day=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const incomingPuzzle=parsePuzzleLink(window.location.search,day());
+if(incomingPuzzle){mode=incomingPuzzle.mode;size=incomingPuzzle.size;level=incomingPuzzle.level;}
 function hash(text){let h=2166136261;for(const char of text)h=Math.imul(h^char.charCodeAt(0),16777619);return h>>>0;}
 function recordTime(){const now=Date.now();if(started&&!paused&&!solved)elapsed+=Math.max(0,now-lastTick);lastTick=now;$('#timer').textContent=formatTime(elapsed);}
 function save(running=true){if(!puzzle)return;write(sessionKey,{id:puzzleId,state,history,future,elapsed,started,hints,paused,solved,savedAt:lastTick,running:running&&started&&!paused&&!solved});}
@@ -53,18 +55,24 @@ function syncControls(){
  $('#mode-note').textContent=mode==='daily'?'하루 한 번, 작은 성취':'내 속도로, 자유롭게';$('#mode-description').textContent=mode==='daily'?'한국 시간 자정에 새로운 퍼즐이 찾아와요.':'새로운 조합의 퍼즐을 천천히 즐겨요.';
  write('preferences',{mode,size,level});$('#wins').innerHTML=`${read('completed',[]).length} <small>puzzles</small>`;
 }
-function loadGame(){
+function loadGame(options={}){
  recordTime();save(false);syncControls();
- const date=day();gameDate=date;sessionKey=`game:${mode}:${size}:${level}:${mode==='daily'?date:'current'}`;
- let practiceSeed=read(`seed:${size}:${level}`,null);
+ const date=mode==='daily'?(options.date||day()):day();gameDate=date;
+ let practiceSeed=Number.isInteger(options.seed)?options.seed:read(`seed:${size}:${level}`,null);
  if(!Number.isInteger(practiceSeed)){practiceSeed=crypto.getRandomValues(new Uint32Array(1))[0];write(`seed:${size}:${level}`,practiceSeed);}
  const seed=mode==='daily'?hash(`${date}:${size}:${level}`):practiceSeed;
+ gameSeed=seed;
+ if(mode==='practice')write(`seed:${size}:${level}`,seed);
+ sessionKey=`game:${mode}:${size}:${level}:${mode==='daily'?date:`seed:${seed}`}`;
  const selected=selectPuzzle(size,level,seed);puzzle=selected.puzzle;puzzleId=selected.id;t=topology(size);
- const saved=read(sessionKey,null),valid=saved?.id===puzzleId&&Array.isArray(saved.state)&&saved.state.length===t.edges.length&&saved.state.every(v=>[0,1,2].includes(v));
+ const saved=read(sessionKey,null)||(mode==='practice'?read(`game:practice:${size}:${level}:current`,null):null),valid=saved?.id===puzzleId&&Array.isArray(saved.state)&&saved.state.length===t.edges.length&&saved.state.every(v=>[0,1,2].includes(v));
  state=valid?saved.state:Array(t.edges.length).fill(0);
  const cleanHistory=items=>Array.isArray(items)?items.filter(a=>Number.isInteger(a.e)&&a.e>=0&&a.e<t.edges.length&&[0,1,2].includes(a.before)&&[0,1,2].includes(a.after)).slice(-1000):[];
  history=valid?cleanHistory(saved.history):[];future=valid?cleanHistory(saved.future):[];started=valid&&Boolean(saved.started);hints=valid&&Number.isInteger(saved.hints)?Math.max(0,saved.hints):0;paused=valid&&Boolean(saved.paused);solved=inspect(t,puzzle.clues,state).solved;elapsed=valid?restoreElapsed({...saved,solved}):0;highlight=-1;lastTick=Date.now();
- $('#puzzle-tag').textContent=mode==='daily'?'DAILY PUZZLE':'PRACTICE PUZZLE';$('#puzzle-title').textContent=mode==='daily'?'오늘의 작은 도전':'나만의 몰입 시간';$('#puzzle-date').textContent=`${date.replaceAll('-','.')} · ${size} × ${size} · ${{easy:'쉬움',medium:'보통',hard:'어려움'}[level]}`;
+ const archived=mode==='daily'&&date!==day();
+ $('#puzzle-tag').textContent=mode==='daily'?(archived?'SHARED DAILY PUZZLE':'DAILY PUZZLE'):'PRACTICE PUZZLE';$('#puzzle-title').textContent=mode==='daily'?(archived?'그날의 데일리 퍼즐':'오늘의 작은 도전'):'나만의 몰입 시간';$('#puzzle-date').textContent=`${date.replaceAll('-','.')} · ${size} × ${size} · ${{easy:'쉬움',medium:'보통',hard:'어려움'}[level]}`;
+ const link={mode,size,level,date:gameDate,seed:gameSeed};
+ window.history.replaceState(null,'',puzzleUrl(link,window.location.href));
  $('#loading').hidden=true;$('#pause-cover').hidden=!paused;$('#pause').textContent=paused?'▷':'Ⅱ';$('#pause').setAttribute('aria-label',paused?'계속 풀기':'일시 정지');$('#timer').textContent=formatTime(elapsed);$$('[data-share-status]').forEach(el=>el.textContent='');buildBoard();render();save();renderDaily();
 }
 function buildBoard(){
@@ -95,7 +103,7 @@ function newPractice(){requestChange('새로운 퍼즐을 시작할까요?','현
  do{seed=crypto.getRandomValues(new Uint32Array(1))[0];const random=rng(seed),count=bank.filter(p=>p.n===size&&p.level===level).length,index=Math.floor(random()*count),turns=Math.floor(random()*4),mirror=random()>.5;if(`${size}:${level}:${index}:${turns}:${mirror}`!==puzzleId)break;}while(true);
  write(`seed:${size}:${level}`,seed);loadGame();});}
 $('#new-game').onclick=newPractice;$('#undo').onclick=()=>undo();$('#redo').onclick=()=>undo(true);$('#pause').onclick=togglePause;$('#resume').onclick=togglePause;
-$('#reset').onclick=()=>requestChange('처음부터 다시 풀까요?','이 퍼즐의 선과 × 표시, 시간 및 힌트 기록을 초기화해요. 오늘의 완료 표시는 유지돼요.',()=>{state.fill(0);history=[];future=[];elapsed=0;hints=0;highlight=-1;started=false;solved=false;paused=false;$('#pause-cover').hidden=true;$('#pause').textContent='Ⅱ';$('#pause').setAttribute('aria-label','일시 정지');lastTick=Date.now();$('#timer').textContent='00:00';render();save();});
+$('#reset').onclick=()=>requestChange('처음부터 다시 풀까요?','이 퍼즐의 선과 × 표시, 시간 및 힌트 기록을 초기화해요. 데일리 완료 표시는 유지돼요.',()=>{state.fill(0);history=[];future=[];elapsed=0;hints=0;highlight=-1;started=false;solved=false;paused=false;$('#pause-cover').hidden=true;$('#pause').textContent='Ⅱ';$('#pause').setAttribute('aria-label','일시 정지');lastTick=Date.now();$('#timer').textContent='00:00';render();save();});
 $('#hint').onclick=()=>{if(solved||paused)return;recordTime();const mismatch=state.findIndex((v,e)=>(v===1&&puzzle.solution[e]!==1)||(v===2&&puzzle.solution[e]===1));let e=mismatch;
  if(e<0)e=state.findIndex((v,i)=>v===0&&puzzle.solution[i]===1);if(e<0)return;hints++;change(e,puzzle.solution[e]===1?1:2);highlight=e;render();save();};
 $('#help').onclick=()=>$('#help-dialog').showModal();$$('.dialog-close,.dialog-close-action').forEach(b=>b.onclick=()=>b.closest('dialog').close());
@@ -106,10 +114,11 @@ function showWin(){if(!solved)return;$('#win-detail').textContent=`${size} × ${
 $('#share-result').onclick=showWin;
 async function shareResult(copyOnly=false){
  if(!solved)return;
- const text=shareText({size,level,elapsed,hints,mode,date:gameDate,records:mode==='daily'?dailyRecords(gameDate):{}});
+ const link={size,level,mode,date:gameDate,seed:gameSeed},url=puzzleUrl(link);
+ const text=shareText({...link,elapsed,hints,records:mode==='daily'?dailyRecords(gameDate):{}});
  if(navigator.share&&!copyOnly){
   shareStatus('기기의 공유 창에서 보낼 곳을 선택하세요. 결과 복사도 사용할 수 있어요.');
-  try{await navigator.share({title:'Slitherlink 완성 기록',text});shareStatus('공유 창을 닫았습니다.');return;}
+  try{await navigator.share({title:'Slitherlink 완성 기록',text:text.slice(0,-url.length).trimEnd(),url});shareStatus('공유 창을 닫았습니다.');return;}
   catch(error){if(error.name==='AbortError'){shareStatus('공유를 취소했어요.');return;}}
  }
  try{await navigator.clipboard.writeText(text);shareStatus('결과를 복사했어요. 친구에게 붙여넣어 보내세요.');}
@@ -123,4 +132,4 @@ document.addEventListener('visibilitychange',()=>{recordTime();save();if(bank.le
 window.addEventListener('pagehide',()=>{recordTime();save();});
 window.addEventListener('pageshow',()=>{if(puzzle){recordTime();save();}});
 setInterval(()=>{recordTime();if(started&&!paused&&!solved)save();if(bank.length&&day()!==progressDate)renderDaily();},1000);
-try{const response=await fetch('./puzzles.json');if(!response.ok)throw Error('퍼즐 파일을 불러오지 못했어요.');bank=await response.json();loadGame();}catch(error){$('#loading').textContent='퍼즐을 불러오지 못했어요. 새로고침해 주세요.';$('#status').textContent=error.message;$$('button').forEach(b=>{if(!['help','theme-toggle'].includes(b.id))b.disabled=true;});}
+try{const response=await fetch('./puzzles.json');if(!response.ok)throw Error('퍼즐 파일을 불러오지 못했어요.');bank=await response.json();loadGame(incomingPuzzle||{});}catch(error){$('#loading').textContent='퍼즐을 불러오지 못했어요. 새로고침해 주세요.';$('#status').textContent=error.message;$$('button').forEach(b=>{if(!['help','theme-toggle'].includes(b.id))b.disabled=true;});}

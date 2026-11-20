@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { restoreElapsed, dailyCount, shareText } from '../progress.js';
+import { restoreElapsed, dailyCount, shareText, puzzleUrl, parsePuzzleLink } from '../progress.js';
 
 test('running timers include reload time and continue across repeated saves', () => {
   const saved = { elapsed: 12500, started: true, running: true, savedAt: 100000 };
@@ -41,8 +41,50 @@ test('daily share includes exact puzzle details and nine completion marks withou
 });
 
 test('practice share does not claim daily completion', () => {
-  const text = shareText({ size: 5, level: 'easy', elapsed: 1000, hints: 0, mode: 'practice' });
+  const text = shareText({ size: 5, level: 'easy', elapsed: 1000, hints: 0, mode: 'practice', seed: 123 });
   assert.match(text, /자유 연습 완성/);
   assert.match(text, /00:01 · 힌트 없이 완성/);
   assert.doesNotMatch(text, /데일리|undefined/);
+});
+
+test('daily links preserve size, difficulty and original date when opened later', () => {
+  const puzzle = { size: 9, level: 'hard', mode: 'daily', date: '2026-11-19' };
+  const url = new URL(puzzleUrl(puzzle));
+  assert.equal(url.origin, 'https://slitherlink.omona.dev');
+  assert.deepEqual(parsePuzzleLink(url.search, '2026-11-20'), puzzle);
+  const text = shareText({ ...puzzle, elapsed: 60000, hints: 0, records: {} });
+  assert.equal(text.split('\n').at(-1), url.href);
+});
+
+test('practice links preserve the exact seed, including zero and the unsigned maximum', () => {
+  for (const size of [5,7,9]) for (const level of ['easy','medium','hard']) for (const seed of [0,123456,4294967295]) {
+    const puzzle = { size, level, mode: 'practice', seed };
+    assert.deepEqual(parsePuzzleLink(new URL(puzzleUrl(puzzle)).search, '2026-11-20'), puzzle);
+  }
+});
+
+test('malformed links cannot apply invalid dimensions, modes, dates, or seeds', () => {
+  const invalid = [
+    '', '?mode=daily&size=3&level=easy&date=2026-11-20',
+    '?mode=other&size=5&level=easy&date=2026-11-20',
+    '?mode=daily&size=5&level=expert&date=2026-11-20',
+    '?mode=daily&size=5&level=easy&date=2026-02-30',
+    '?mode=daily&size=5&level=easy&date=2026-11-21',
+    '?mode=daily&size=5&level=easy',
+    '?mode=practice&size=5&level=easy',
+    '?mode=practice&size=5&level=easy&seed=-1',
+    '?mode=practice&size=5&level=easy&seed=4294967296',
+    '?mode=practice&size=5&level=easy&seed=1e4',
+    '?mode=practice&size=5&level=easy&seed=1&seed=2',
+    '?v=2&mode=practice&size=5&level=easy&seed=1',
+  ];
+  for (const query of invalid) assert.equal(parsePuzzleLink(query, '2026-11-20'), null, query);
+});
+
+test('new puzzle URLs replace stale link parameters and never include sender progress', () => {
+  const url = new URL(puzzleUrl({ mode:'practice',size:7,level:'medium',seed:42 }, 'http://localhost:4173/?mode=daily&date=2026-11-19#old'));
+  assert.equal(url.origin, 'http://localhost:4173');
+  assert.equal(url.searchParams.has('date'), false);
+  assert.equal(url.hash, '');
+  assert.deepEqual([...url.searchParams.keys()], ['v','mode','size','level','seed']);
 });
